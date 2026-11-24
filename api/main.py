@@ -43,7 +43,7 @@ class ScriptUpload(BaseModel):
 
 
 class ScriptSet(BaseModel):
-    scripts: list[ScriptUpload] = Field(min_length=1, max_length=8)
+    scripts: list[ScriptUpload] = Field(min_length=1, max_length=10)
 
 
 class BatchRequest(ScriptSet):
@@ -124,8 +124,23 @@ async def kubernetes_error(_request: Request, error: ApiException):
 
 
 @app.get("/", response_class=HTMLResponse)
+def landing():
+    return FileResponse(SOURCE_FILES / "landing.html", media_type="text/html")
+
+
+@app.get("/landing/dashboard.png", include_in_schema=False)
+def landing_preview():
+    return FileResponse(SOURCE_FILES.parent / "docs" / "images" / "dashboard.png", media_type="image/png")
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
 def dashboard():
     return FileResponse(Path(__file__).with_name("dashboard.html"), media_type="text/html")
+
+
+@app.get("/assets/brand.css", include_in_schema=False)
+def brand_styles():
+    return FileResponse(SOURCE_FILES / "brand.css", media_type="text/css")
 
 
 @app.get("/demo-shop")

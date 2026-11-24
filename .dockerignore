@@ -5,6 +5,8 @@
 !api/Dockerfile
 !api/main.py
 !api/dashboard.html
+!api/landing.html
+!api/brand.css
 !api/shop.html
 !api/shop-assets/
 !api/shop-assets/*.png
@@ -14,3 +16,6 @@
 !worker/Dockerfile
 !worker/run.py
 !worker/demo.html
+!docs/
+!docs/images/
+!docs/images/dashboard.png

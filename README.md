@@ -36,13 +36,17 @@ The script copies the Kubernetes manifest over SSH, installs K3s if needed, pull
 
 ## Run the demo
 
-1. Select **New batch → Load example scripts → Catalog discovery** to load three bundled checks, or upload your own `.py` files.
+From the landing page, select **Open dashboard** to reach the runner at `/dashboard`.
+
+1. Select **New batch → Load example scripts → Catalog discovery** to load three bundled checks, or upload up to 10 distinct `.py` files of 64 KiB each.
 2. Enable **Record a video for each check** and submit the batch.
 3. Select a check to read its description, view its evidence, and see the Kubernetes worker pod that ran it.
 
 ![New batch dialog with three bundled Playwright scripts, their descriptions, and video recording enabled](docs/images/new-batch.png)
 
 Each uploaded script starts with a module docstring describing the check and defines a synchronous `run(page)` function. Browser Lab passes a Playwright page into that function. The bundled scripts in [`api/examples/`](api/examples/) test the included Field Supply demo shop. Use scripts you or your team wrote.
+
+Ten workers request about 2.5 GiB of RAM before the API and Kubernetes overhead. Actual usage depends on the pages under test and whether video is enabled. Start with one batch at a time on a 4 GiB demo instance.
 
 ## How it runs
 

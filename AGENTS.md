@@ -13,10 +13,13 @@ This is a private runner for batches of team-authored Python Playwright checks o
 
 ## Commands
 
-```sh
-# From the repo root, build both images using the API and worker groups in uv.lock.
+```text
+# Deploy the published Docker Hub images to Ubuntu EC2 and open the dashboard tunnel.
+.\Deploy-BrowserLab.ps1 -Ec2Host 'YOUR_EC2_PUBLIC_IP' -KeyPath 'C:\keys\your-key.pem'
+# Build both images before publishing a new version. See README.md for the tag and push commands.
 docker compose build
-# Install headless Chromium for a standalone worker run.
+
+# In a Bash shell, install headless Chromium for a standalone worker run.
 uv run --locked --only-group worker playwright install --only-shell chromium
 # Run the original standalone heading check and save outputs in the ignored scratch directory.
 ARTIFACT_DIR=./agent_temp/artifacts uv run --locked --only-group worker python worker/run.py demo-pass pass
@@ -33,7 +36,7 @@ sudo k3s kubectl -n browser-demo port-forward service/browser-demo-api 8000:8000
 ## Runtime Dependencies
 
 - The API starts using in-cluster service account credentials. It needs namespaced permissions to create and list Jobs and list Pods.
-- K3s must have both images imported and the `local-path` StorageClass available. Missing images prevent pods from starting. A missing StorageClass leaves the `artifacts` claim unbound.
+- K3s needs both images and the `local-path` StorageClass. The deploy script pulls published images from Docker Hub. Applying the base manifest directly requires importing the local tags. A missing StorageClass leaves the `artifacts` claim unbound.
 - The worker image supplies Chromium. The bundled examples use `DEMO_BASE_URL`, set to the internal API service’s shop page. An EC2 SSH login provides dashboard access. The application requires no API keys, database, or broker.
 
 ## Architecture
@@ -44,9 +47,9 @@ sudo k3s kubectl -n browser-demo port-forward service/browser-demo-api 8000:8000
 
 ### Non-obvious details
 
-- `submit_job` sets a 60-second deadline and zero backoff retries. `BatchRequest` accepts up to eight distinct `.py` files of 64 KiB each. The API reads the required module docstrings with `ast` before it submits jobs. Uploaded code is for private, team-authored demos.
+- `submit_job` sets a 60-second deadline and zero backoff retries. Each worker requests 100m CPU and 256 MiB RAM, with limits of 1 CPU and 768 MiB. `BatchRequest` accepts up to 10 distinct `.py` files of 64 KiB each. Keep the dashboard upload cap in sync. The API reads the required module docstrings with `ast` before it submits jobs. Uploaded code is for private, team-authored demos.
 - `describe_run` uses Job terminal conditions and the Pod’s running phase. A created Job can be `Pending` before its worker pod starts.
-- Both images use `imagePullPolicy: Never` in Kubernetes. `WORKER_IMAGE` is set in `k8s/browser-demo.yaml` and must match the tag built in `docker-compose.yml`.
+- The base manifest uses `Never` for both images. `Deploy-BrowserLab.ps1` renders it with Docker Hub tags and `IfNotPresent`, including the worker settings `WORKER_IMAGE` and `WORKER_IMAGE_PULL_POLICY`.
 - The API and workers mount the shared claim read-write. Batch metadata, screenshots, and final result files are renamed into place after writing. `ARTIFACT_DIR` defaults to that mount and can be overridden for a standalone worker run.
 - `DELETE /api/batches/{batch_id}` archives the metadata for a finished batch under `history-archive/deleted-batches/` on the shared volume. Per-run artifacts are retained.
 

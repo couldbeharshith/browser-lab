@@ -1,0 +1,17 @@
+.brand-mark {
+  width: 26px;
+  height: 21px;
+  flex: none;
+  position: relative;
+  border-top: 2px solid var(--brand-mark-color, #aabaff);
+  border-left: 2px solid var(--brand-mark-color, #aabaff);
+}
+.brand-mark::before, .brand-mark::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  height: 3px;
+  background: var(--brand-mark-color, #aabaff);
+}
+.brand-mark::before { top: 5px; width: 17px; }
+.brand-mark::after { top: 12px; width: 10px; }

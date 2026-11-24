@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Browser Lab</title>
+<link rel="stylesheet" href="/assets/brand.css">
 <style>
 :root {
   color-scheme: dark;
@@ -56,8 +57,7 @@ header {
   padding: 0 clamp(16px, 3vw, 38px);
   background: var(--nav); border-bottom: 1px solid var(--line);
 }
-.brand { font-size: 20px; font-weight: 680; letter-spacing: -.04em; }
-.mark { width: 17px; height: 17px; background: var(--accent); clip-path: polygon(0 0,100% 0,100% 36%,36% 36%,36% 100%,0 100%); }
+.brand { --brand-mark-color: var(--accent); color: var(--text); text-decoration: none; font-size: 20px; font-weight: 680; letter-spacing: -.04em; }
 .header-tools { gap: 18px; }
 .connection { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
 .connection::before { content: ""; width: 6px; height: 6px; background: var(--pass); }
@@ -66,17 +66,19 @@ header {
 .primary:hover { background: #edff98; border-color: #edff98; }
 
 .shell { display: grid; grid-template-columns: 238px minmax(0,1fr); min-height: calc(100vh - 65px); }
-aside { background: var(--nav); padding: 24px 13px; border-right: 1px solid var(--line); min-width: 0; }
-.aside-heading { justify-content: space-between; padding: 0 10px 12px; }
-.aside-heading h2, .count { color: var(--muted); font-size: 12px; }
-.count { font-variant-numeric: tabular-nums; }
-#batch-empty { padding: 0 10px; font-size: .85rem; }
-.batch-nav { display: grid; gap: 4px; }
+aside { background: var(--nav); padding: 26px 14px; border-right: 1px solid var(--line); min-width: 0; }
+.aside-heading { justify-content: space-between; margin: 0 6px 12px; padding: 0 2px 12px; border-bottom: 1px solid var(--line); }
+.aside-heading h2 { font-size: .88rem; }
+.count { min-width: 22px; padding-inline: 5px; border: 1px solid var(--line); border-radius: var(--corner); color: var(--muted); font-size: .73rem; text-align: center; font-variant-numeric: tabular-nums; }
+#batch-empty { padding: 4px 8px; font-size: .85rem; }
+.batch-nav { display: grid; gap: 5px; padding: 3px; }
 .batch, .check { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: start; gap: 10px; }
-.batch-row { display: grid; grid-template-columns: minmax(0,1fr) 30px; align-items: center; padding-right: 4px; border: 1px solid transparent; border-radius: var(--panel-corner); }
-.batch { border: 0; padding: 10px 5px 10px 10px; min-width: 0; }
-.batch-row:hover { border-color: var(--line); }
-.batch-row[data-selected=true], .check[aria-pressed=true] {
+.batch-row { display: grid; grid-template-columns: minmax(0,1fr) 30px; align-items: center; padding-right: 5px; border: 1px solid var(--line); border-radius: var(--panel-corner); }
+.batch { display: block; border: 0; padding: 11px 7px 11px 12px; min-width: 0; }
+.batch strong { font-size: .88rem; }
+.batch-row:hover { background: var(--surface); }
+.batch-row[data-selected=true] { background: var(--selected); border-color: var(--selected-line); }
+.check[aria-pressed=true] {
   background: var(--selected);
   border-color: var(--selected-line);
   box-shadow: inset 2px 0 var(--accent);
@@ -87,9 +89,13 @@ aside { background: var(--nav); padding: 24px 13px; border-right: 1px solid var(
 .trash-icon::before { content: ""; position: absolute; top: -2px; left: -3px; right: -3px; height: 1px; background: currentColor; }
 .trash-icon::after { content: ""; position: absolute; top: -5px; left: 2px; width: 4px; height: 3px; border: 1px solid currentColor; border-bottom: 0; }
 .batch strong, .check strong { display: block; overflow-wrap: anywhere; }
-.batch small { display: block; font-weight: 400; margin-top: 2px; }
-main { width: 100%; min-width: 0; max-width: 1740px; margin-inline: auto; padding: clamp(20px,3.2vw,48px); }
-.summary { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 19px; margin-bottom: 22px; }
+.batch small { display: flex; align-items: center; gap: 7px; font-size: .76rem; font-weight: 400; margin-top: 4px; }
+.batch small::before { content: ""; width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--muted); }
+.batch-row[data-state=Running] small::before { background: var(--accent); }
+.batch-row[data-state=Succeeded] small::before { background: var(--pass); }
+.batch-row[data-state=Failed] small::before { background: var(--fail); }
+main { width: 100%; min-width: 0; max-width: 2040px; margin-inline: auto; padding: clamp(20px,2.5vw,44px); }
+.summary { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 19px; margin-bottom: 24px; }
 .summary p { margin-top: 7px; font-size: .85rem; }
 .completion { display: grid; gap: 6px; width: min(100%, 220px); }
 .completion small { font-size: .77rem; }
@@ -100,22 +106,22 @@ progress { appearance: none; width: 100%; height: 5px; border: none; border-radi
 progress::-webkit-progress-bar { background: var(--line); }
 progress::-webkit-progress-value { background: var(--accent); border-radius: 1px; }
 progress::-moz-progress-bar { background: var(--accent); }
-.stats { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border: 1px solid var(--line); border-radius: var(--panel-corner); background: var(--surface); margin-bottom: 18px; overflow: hidden; }
-.stat { padding: 12px 16px; min-width: 0; }
+.stats { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border: 1px solid var(--line); border-radius: var(--panel-corner); background: var(--surface); margin-bottom: 24px; overflow: hidden; }
+.stat { padding: 14px 20px; min-width: 0; }
 .stat + .stat { border-left: 1px solid var(--line); }
 .stat span { display: block; color: var(--muted); font-size: .78rem; }
 .stat strong { display: block; font-size: clamp(1.35rem, 2.5vw, 1.85rem); line-height: 1.25; font-weight: 620; font-variant-numeric: tabular-nums; }
 .stat .good { color: var(--pass); }
 .stat .bad { color: var(--fail); }
 
-.workspace { display: grid; grid-template-columns: minmax(270px, .87fr) minmax(0,1.65fr); gap: 16px; align-items: start; }
-.check-column { min-width: 0; display: grid; gap: 14px; }
+.workspace { display: grid; grid-template-columns: minmax(300px, clamp(320px, 24vw, 500px)) minmax(0,1fr); gap: clamp(16px, 1.5vw, 28px); align-items: start; }
+.check-column { min-width: 0; display: grid; gap: 20px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--panel-corner); min-width: 0; overflow: hidden; }
 .section-head, .row { justify-content: space-between; flex-wrap: wrap; }
-.panel > .section-head, .inspector-header { padding: 14px 16px; }
-.checks { padding: 0 8px 8px; }
-.check { display: grid; grid-template-columns: minmax(0,1fr) auto; border-color: transparent; padding: 10px 8px; }
-.check + .check { margin-top: 3px; }
+.panel > .section-head, .inspector-header { padding: 17px 20px; }
+.checks { padding: 0 10px 10px; max-height: clamp(240px, 45vh, 580px); overflow-y: auto; }
+.check { display: grid; grid-template-columns: minmax(0,1fr) auto; border-color: transparent; padding: 12px 10px; }
+.check + .check { margin-top: 4px; }
 .check strong, .file-details strong { font-size: .81rem; }
 .description { display: block; color: var(--muted); font-family: "Segoe UI", system-ui, sans-serif; font-size: .83rem; font-weight: 400; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; margin-top: 5px; }
 .tag { font-size: .73rem; padding: 2px 7px; color: var(--muted); border: 1px solid var(--line); border-radius: 2px; background: var(--nav); white-space: nowrap; }
@@ -123,7 +129,7 @@ progress::-moz-progress-bar { background: var(--accent); }
 .tag.Running { color: var(--accent); border-color: var(--selected-line); background: var(--selected); }
 .tag.Failed { color: var(--fail); border-color: #65363c; background: #291619; }
 .timeline .section-head small { font-size: .73rem; }
-#tracks { padding: 0 15px 9px; }
+#tracks { padding: 0 20px 12px; max-height: 240px; overflow-y: auto; }
 .timeline-run { display: block; width: 100%; padding: 5px 0 2px; border: 0; text-align: left; font-size: .75rem; overflow-wrap: anywhere; }
 .timeline-run[aria-pressed=true], .timeline-run:hover { color: var(--accent); }
 .track { height: 5px; background: var(--line); position: relative; margin: 5px 0 10px; border-radius: 2px; overflow: hidden; }
@@ -133,10 +139,10 @@ progress::-moz-progress-bar { background: var(--accent); }
 
 .inspector-header { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: start; }
 .inspector-header h2 { font-size: 1.1rem; font-family: ui-monospace, Consolas, monospace; }
-.inspector-tools { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 16px; gap: 8px; }
+.inspector-tools { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 20px; gap: 10px; }
 .inspector-tools a { font-size: .79rem; white-space: nowrap; }
-.tabs { display: flex; gap: 14px; }
-.tabs button { border: 0; border-bottom: 2px solid transparent; font-size: .82rem; padding: 8px 0; color: var(--muted); }
+.tabs { display: flex; gap: 18px; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; font-size: .87rem; padding: 10px 0; color: var(--muted); }
 .tabs button[aria-pressed=true] { border-bottom-color: var(--accent); color: var(--accent); }
 .preview { aspect-ratio: 16/9; max-height: 620px; display: grid; place-items: center; background: var(--well); overflow: hidden; }
 .preview img, .preview video { width: 100%; height: 100%; object-fit: contain; display: block; min-height: 0; }
@@ -154,10 +160,10 @@ progress::-moz-progress-bar { background: var(--accent); }
 .video-view:fullscreen { display: grid; grid-template-rows: minmax(0,1fr) auto; background: var(--well); }
 .video-view:fullscreen video { height: 100%; max-height: none; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 400px; overflow: auto; background: var(--well); padding: 15px; margin: 0; color: var(--text); }
-.result { margin: 0; padding: 11px 16px; border-top: 1px solid var(--line); overflow-wrap: anywhere; font-size: .84rem; }
+.result { margin: 0; padding: 13px 20px; border-top: 1px solid var(--line); overflow-wrap: anywhere; font-size: .84rem; }
 .result[data-state=Succeeded] { color: var(--pass); }
 .result[data-state=Failed] { color: var(--fail); }
-dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 5px 14px; margin: 0; padding: 12px 16px 15px; border-top: 1px solid var(--line); font-size: 12px; }
+dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 6px 16px; margin: 0; padding: 15px 20px 18px; border-top: 1px solid var(--line); font-size: 12px; }
 dd { margin: 0; overflow-wrap: anywhere; }
 
 .empty { max-width: 1110px; padding: clamp(14px,3vw,38px) 0; }
@@ -214,17 +220,20 @@ input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; bord
 @media(max-width:720px) {
   .shell { grid-template-columns: minmax(0,1fr); }
   aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
-  .batch-nav { display: flex; overflow: auto; gap: 6px; }
-  .batch-row { flex: 0 0 156px; border-color: var(--line); }
-  .batch { padding: 7px; }
+  .batch-nav { display: flex; overflow: auto; gap: 8px; }
+  .batch-row { flex: 0 0 172px; }
+  .batch { padding: 8px 5px 8px 9px; }
   .header-tools { gap: 8px; }
   .connection { font-size: 0; }
   .stat { padding: 7px 5px 10px; }
   .stat span { font-size: .67rem; }
   .setup, .check-column { grid-template-columns: 1fr; }
+  .check-column { display: contents; }
+  .timeline { grid-row: 3; }
+  .checks { max-height: 260px; }
   .dropzone.hero { min-height: 135px; }
 }
-@media(max-width:375px) {
+@media(max-width:420px) {
   .inspector-tools { flex-wrap: wrap; }
   .inspector-tools a { margin-bottom: 8px; }
   .video-controls { grid-template-columns: auto minmax(0,1fr) auto; }
@@ -234,7 +243,7 @@ input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; bord
 </head>
 <body>
 <header>
-  <div class="brand"><span class="mark" aria-hidden="true"></span> Browser Lab</div>
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span>Browser Lab</a>
   <div class="header-tools"><span class="connection" id="connection">Connecting</span><button type="button" class="primary" data-upload>New batch</button></div>
 </header>
 <div class="shell">
@@ -253,7 +262,7 @@ input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; bord
         <button type="button" class="dropzone hero" id="first-upload" data-upload>
           <span class="upload-mark" aria-hidden="true">↑</span>
           <strong>Drop .py files here</strong>
-          <small>or click to browse · up to 8 scripts per batch</small>
+          <small>or click to browse · up to 10 scripts per batch</small>
         </button>
         <section class="examples" aria-labelledby="examples-title">
           <h2 id="examples-title">Example scripts</h2>
@@ -286,9 +295,9 @@ input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; bord
           </div>
           <div class="inspector-tools">
           <div class="tabs" id="tabs" role="group" aria-label="Evidence views">
-            <button type="button" data-tab="screenshot">Screenshot</button><button type="button" data-tab="log">Logs</button><button type="button" data-tab="video">Video</button>
+            <button type="button" data-tab="video">Video</button><button type="button" data-tab="screenshot">Screenshot</button><button type="button" data-tab="log">Logs</button>
           </div>
-            <a id="download" hidden>Download PNG</a>
+            <a id="download" download hidden></a>
           </div>
           <div class="preview" id="media"></div><pre id="log" hidden></pre>
           <p class="result muted" id="result" role="status"></p>
@@ -306,7 +315,7 @@ input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; bord
     <input id="scripts" type="file" aria-label="Python scripts" accept=".py,text/x-python" multiple hidden>
     <button type="button" class="dropzone" id="choose-scripts">
       <strong>Choose or drop Python files</strong>
-      <small>Up to 8 files of 64 KiB each. Start each with a short docstring.</small>
+      <small>Up to 10 files of 64 KiB each. Start each with a short docstring.</small>
     </button>
     <ul id="files" class="files" aria-label="Selected scripts"></ul>
     <label class="toggle"><input id="record-video" type="checkbox"> Record a video for each check</label>
@@ -331,7 +340,7 @@ const dialog = el('upload');
 const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '—';
 const shortId = (value) => value.slice(0, 14);
 const display = {Succeeded:'Passed', Failed:'Failed', Pending:'Queued', Running:'Running'};
-let batches = [], selectedBatch, selectedRun, selectedTab = 'screenshot', files = [];
+let batches = [], selectedBatch, selectedRun, selectedTab, files = [];
 let snapshot = '', evidenceKey = '', logRequest = 0;
 let preparingFiles = false, submitting = false, libraryRequest;
 let batchToDelete, deleting = false, historyRevision = 0;
@@ -376,14 +385,14 @@ function replaceControls(container, controls) {
 
 function selectRun(id) {
   selectedRun = id;
-  selectedTab = 'screenshot';
+  selectedTab = undefined;
   renderBatch();
 }
 
 function selectBatch(id) {
   selectedBatch = id;
   selectedRun = undefined;
-  selectedTab = 'screenshot';
+  selectedTab = undefined;
 }
 
 function batchRow(batch) {
@@ -391,7 +400,12 @@ function batchRow(batch) {
   const selected = batch.id === selectedBatch;
   row.dataset.selected = String(selected);
   const finished = batch.runs.filter(run => ['Succeeded', 'Failed'].includes(run.status)).length;
-  const show = listButton(batch.name, finished + '/' + batch.runs.length + ' finished', 'batch', selected, () => {
+  const failed = batch.runs.some(run => run.status === 'Failed');
+  row.dataset.state = finished === batch.runs.length ? (failed ? 'Failed' : 'Succeeded') : 'Running';
+  const detail = finished === batch.runs.length
+    ? (failed ? 'Finished with failures' : 'All checks passed')
+    : finished + ' of ' + batch.runs.length + ' finished';
+  const show = listButton(batch.name, detail, 'batch', selected, () => {
     selectBatch(batch.id);
     renderBatch();
   }, undefined, batch.id);
@@ -581,31 +595,35 @@ function renderEvidence(run) {
   updateElapsed(run);
   el('result').textContent = run.message || display[run.status];
   el('result').dataset.state = run.status;
+  const view = selectedTab || (run.video ? 'video' : run.screenshot ? 'screenshot' : run.log ? 'log' : 'screenshot');
+  const url = run[view];
   const link = el('download');
-  link.hidden = !run.screenshot;
-  if (run.screenshot) link.href = run.screenshot;
+  link.hidden = !url || view === 'log';
+  if (!link.hidden) {
+    link.href = url;
+    link.textContent = view === 'video' ? 'Download video' : 'Download PNG';
+  }
   for (const button of el('tabs').querySelectorAll('button')) {
     const tab = button.dataset.tab;
-    button.setAttribute('aria-pressed', String(tab === selectedTab));
+    button.setAttribute('aria-pressed', String(tab === view));
     button.disabled = tab !== 'screenshot' && !run[tab];
   }
-  const url = run[selectedTab];
-  const key = [run.id, selectedTab, url, !url || selectedTab === 'log' ? run.status : ''].join('|');
+  const key = [run.id, view, url, !url || view === 'log' ? run.status : ''].join('|');
   if (key === evidenceKey) return;
   evidenceKey = key;
   const request = ++logRequest;
   const media = el('media'), log = el('log');
   media.querySelector('video')?.pause();
   media.classList.remove('video-view');
-  media.hidden = selectedTab === 'log';
-  log.hidden = selectedTab !== 'log';
+  media.hidden = view === 'log';
+  log.hidden = view !== 'log';
   if (media.hidden) media.replaceChildren();
   if (!url) {
     const finished = ['Succeeded', 'Failed'].includes(run.status);
     media.replaceChildren(node('p', finished ? 'The worker did not capture a screenshot.' : 'Waiting for evidence…', 'muted'));
     return;
   }
-  if (selectedTab === 'log') {
+  if (view === 'log') {
     log.textContent = 'Loading logs…';
     fetch(url, {cache:'no-store'}).then(response => {
       if (!response.ok) throw new Error('Log unavailable');
@@ -613,7 +631,7 @@ function renderEvidence(run) {
     }).then(data => {
       if (request === logRequest) log.textContent = data || 'No log output yet.';
     }).catch(() => { if (request === logRequest) log.textContent = 'Could not load logs.'; });
-  } else if (selectedTab === 'video') {
+  } else if (view === 'video') {
     renderVideo(media, url);
   } else {
     const image = node('img');
@@ -648,7 +666,7 @@ function showFiles() {
     row.append(details, remove);
     return row;
   }));
-  el('file-count').textContent = preparingFiles ? 'Reading files…' : files.length + ' of 8 selected';
+  el('file-count').textContent = preparingFiles ? 'Reading files…' : files.length + ' of 10 selected';
   el('choose-scripts').disabled = submitting || preparingFiles;
   el('close-upload').disabled = submitting || preparingFiles;
   el('submit').disabled = submitting || preparingFiles || !files.length || files.some(file => file.error);
@@ -678,8 +696,8 @@ async function collectFiles(selected) {
   if (!selected.length || submitting || preparingFiles) return;
   el('upload-error').textContent = '';
   const names = [...files, ...selected].map(file => file.name.toLowerCase());
-  if (names.length > 8 || selected.some(file => !file.size || file.size > 65536 || !/^[\w .-]{1,75}\.py$/.test(file.name))) {
-    el('upload-error').textContent = 'Choose up to eight nonempty .py files of 64 KiB or less. Use simple filenames.';
+  if (names.length > 10 || selected.some(file => !file.size || file.size > 65536 || !/^[\w .-]{1,75}\.py$/.test(file.name))) {
+    el('upload-error').textContent = 'Choose up to 10 nonempty .py files of 64 KiB or less. Use simple filenames.';
     return;
   }
   if (new Set(names).size !== names.length) {

@@ -8,7 +8,8 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY --from=dependencies /app/.venv .venv
-COPY api/main.py api/dashboard.html api/shop.html ./
+COPY api/main.py api/dashboard.html api/landing.html api/brand.css api/shop.html ./
+COPY docs/images/dashboard.png /docs/images/dashboard.png
 COPY api/examples ./examples
 COPY api/shop-assets ./shop-assets
 
