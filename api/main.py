@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 NAMESPACE = os.environ.get("POD_NAMESPACE", "browser-demo")
 WORKER_IMAGE = os.environ.get("WORKER_IMAGE", "browser-demo-worker:1")
+WORKER_IMAGE_PULL_POLICY = os.environ.get("WORKER_IMAGE_PULL_POLICY", "Never")
 ARTIFACTS = Path(os.environ.get("ARTIFACT_DIR", "/artifacts"))
 WORKER_LABEL = "app.kubernetes.io/name=browser-demo-worker"
 RUN_ID = re.compile(r"run-[0-9a-f]{32}")
@@ -197,7 +198,7 @@ def submit_job(run_id, check, record_video=False):
                         {
                             "name": "worker",
                             "image": WORKER_IMAGE,
-                            "imagePullPolicy": "Never",
+                            "imagePullPolicy": WORKER_IMAGE_PULL_POLICY,
                             "args": args,
                             "env": [{"name": "DEMO_BASE_URL", "value": "http://browser-demo-api:8000/demo-shop"}],
                             "securityContext": {"allowPrivilegeEscalation": False},

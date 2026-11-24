@@ -7,6 +7,12 @@ param(
     [Parameter(Mandatory)]
     [string]$KeyPath,
 
+    [ValidatePattern('^[a-z0-9][a-z0-9_-]*$')]
+    [string]$DockerHubUser = 'couldbeharshith',
+
+    [ValidatePattern('\A[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}\z')]
+    [string]$ImageTag = 'v1',
+
     [ValidateRange(1024, 65535)]
     [int]$LocalPort = 8081,
 
@@ -28,35 +34,36 @@ function Invoke-Step {
 }
 
 if (-not $TunnelOnly) {
-    $archive = Join-Path ([System.IO.Path]::GetTempPath()) "browser-lab-$([guid]::NewGuid()).tar"
-    Push-Location -LiteralPath $PSScriptRoot
+    $apiImage = "docker.io/$DockerHubUser/browser-lab:api-$ImageTag"
+    $workerImage = "docker.io/$DockerHubUser/browser-lab:worker-$ImageTag"
+    $manifestName = "browser-lab-$([guid]::NewGuid()).yaml"
+    $manifestPath = Join-Path ([System.IO.Path]::GetTempPath()) $manifestName
+    $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'k8s/browser-demo.yaml') -Raw
+    $manifest = $template.Replace('browser-demo-api:1', $apiImage).Replace('browser-demo-worker:1', $workerImage)
+    $manifest = $manifest.Replace('imagePullPolicy: Never', 'imagePullPolicy: IfNotPresent').Replace('value: Never', 'value: IfNotPresent')
     try {
+        [System.IO.File]::WriteAllText($manifestPath, $manifest)
         Invoke-Step 'Test SSH access and create the deployment directory on EC2.' ssh @('-i', $keyFile, $remote, 'mkdir -p ~/browser-lab')
-        Invoke-Step 'Build the API and Playwright worker images with Docker Compose.' docker @('compose', 'build')
-        Invoke-Step 'Pack both Docker images into a portable archive.' docker @('save', '--output', $archive, 'browser-demo-api:1', 'browser-demo-worker:1')
-        Invoke-Step 'Copy the images and Kubernetes manifest to EC2 over SSH.' scp @('-i', $keyFile, $archive, '.\k8s\browser-demo.yaml', "${remote}:browser-lab/")
+        Invoke-Step 'Copy the small Kubernetes manifest to EC2 over SSH.' scp @('-i', $keyFile, $manifestPath, "${remote}:browser-lab/")
 
-        $archiveName = Split-Path -Leaf $archive
         $deploy = @(
             'cd ~/browser-lab',
             '(command -v k3s >/dev/null || (curl -fsSL https://get.k3s.io -o k3s-install.sh && sudo -n sh k3s-install.sh server --disable traefik --disable servicelb))',
             'sudo -n systemctl start k3s',
             'sudo -n k3s kubectl wait --for=condition=Ready node --all --timeout=180s',
-            "sudo -n k3s ctr images import $archiveName",
-            "rm -f -- $archiveName",
-            'existing=$(sudo -n k3s kubectl -n browser-demo get deployment/browser-demo-api --ignore-not-found -o name)',
-            'sudo -n k3s kubectl apply -f browser-demo.yaml',
-            'case $existing in deployment.apps/*) sudo -n k3s kubectl -n browser-demo rollout restart deployment/browser-demo-api ;; esac',
+            "sudo -n k3s ctr images pull $apiImage",
+            "sudo -n k3s ctr images pull $workerImage",
+            "sudo -n k3s kubectl apply -f $manifestName",
+            "rm -f -- $manifestName",
             'sudo -n k3s kubectl -n browser-demo rollout status deployment/browser-demo-api --timeout=180s',
             'sudo -n k3s kubectl -n browser-demo get pods,svc,pvc'
         ) -join ' && '
-        Invoke-Step 'Install K3s if needed, import the images, apply the manifest, and wait for the API.' ssh @('-i', $keyFile, $remote, $deploy)
+        Invoke-Step 'Install K3s if needed, pull both images from Docker Hub, and wait for the API.' ssh @('-i', $keyFile, $remote, $deploy)
     }
     finally {
-        if (Test-Path -LiteralPath $archive) {
-            Remove-Item -LiteralPath $archive
+        if (Test-Path -LiteralPath $manifestPath) {
+            Remove-Item -LiteralPath $manifestPath
         }
-        Pop-Location
     }
 }
 

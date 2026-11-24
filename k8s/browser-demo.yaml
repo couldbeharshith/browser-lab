@@ -76,6 +76,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: WORKER_IMAGE
               value: browser-demo-worker:1
+            - name: WORKER_IMAGE_PULL_POLICY
+              value: Never
           ports:
             - containerPort: 8000
           readinessProbe:

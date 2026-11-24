@@ -4,9 +4,27 @@ Browser Lab is a proof of concept for running Python Playwright checks in parall
 
 ![Browser Lab dashboard showing a completed EC2 batch, worker timeline, and screenshot evidence](docs/images/dashboard.png)
 
+## Publish the images once
+
+The default deployment pulls `api-v1` and `worker-v1` from the public Docker Hub repository `couldbeharshith/browser-lab`. To publish your own build, create a public repository named `browser-lab` in your Docker Hub account. From the project folder on your build PC, start Docker Desktop in Linux container mode and run:
+
+```powershell
+$dockerHubUser = 'YOUR_DOCKERHUB_USERNAME'
+$imageTag = 'v1'
+$env:DOCKER_DEFAULT_PLATFORM = 'linux/amd64'
+docker login --username $dockerHubUser
+docker compose build
+docker tag browser-demo-api:1 "$dockerHubUser/browser-lab:api-$imageTag"
+docker tag browser-demo-worker:1 "$dockerHubUser/browser-lab:worker-$imageTag"
+docker push "$dockerHubUser/browser-lab:api-$imageTag"
+docker push "$dockerHubUser/browser-lab:worker-$imageTag"
+```
+
+`docker login` authenticates you as the publisher. Compose builds the Linux images for the x86-64 EC2 host. `docker tag` gives each local image its Docker Hub name, and `docker push` uploads it. Reuse the same tag for as many deployments as you need. When publishing an updated build, give both images a new tag such as `v2` so Kubernetes picks up the new version.
+
 ## Deploy to EC2
 
-On a Windows PC, start Docker Desktop in Linux container mode and make sure `git`, `ssh`, and `scp` are available in PowerShell. In AWS, launch an Ubuntu 24.04 x86-64 EC2 instance with a public IP and a `.pem` key pair. The demo used a `c7i-flex.large` with a 20 GiB `gp3` root volume. Allow inbound SSH on TCP 22 from **My IP**.
+On a Windows PC, make sure `git`, `ssh`, and `scp` are available in PowerShell. In AWS, launch an Ubuntu 24.04 x86-64 EC2 instance with a public IP and a `.pem` key pair. The demo used a `c7i-flex.large` with a 20 GiB `gp3` root volume. Allow inbound SSH on TCP 22 from **My IP**.
 
 ```powershell
 git clone https://github.com/couldbeharshith/distributed-cloud-testing.git
@@ -14,7 +32,7 @@ cd distributed-cloud-testing
 .\Deploy-BrowserLab.ps1 -Ec2Host 'YOUR_EC2_PUBLIC_IP' -KeyPath 'C:\keys\your-key.pem'
 ```
 
-The script builds both Docker images, copies them to EC2, installs K3s if needed, applies the Kubernetes manifest, and opens an SSH tunnel. When `Forwarding` appears, visit [Browser Lab](http://127.0.0.1:8081/) and keep the terminal open. Use `-TunnelOnly` on later connections to skip the build and deployment. Use `-LocalPort 8082` if `8081` is in use.
+The script copies the Kubernetes manifest over SSH, installs K3s if needed, pulls both public images directly from Docker Hub on EC2, and opens an SSH tunnel. The deployment PC needs only the project files and SSH tools. When `Forwarding` appears, visit [Browser Lab](http://127.0.0.1:8081/) and keep the terminal open. Use `-DockerHubUser` to select your own repository and `-ImageTag` to select a version other than `v1`. To reconnect, pass only `-Ec2Host`, `-KeyPath`, and `-TunnelOnly`. Use `-LocalPort 8082` if `8081` is in use.
 
 ## Run the demo
 
