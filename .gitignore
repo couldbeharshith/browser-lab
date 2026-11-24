@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.ppk
+/.venv/
+/agent_temp/
+/temp/
+/browser-demo-images.tar
+/Cart journeys/
+/Catalog discovery/
+/Regression replay/
+/idea/Cloud_Browser_Automation_Platform.pdf
+/idea/browser-lab-demo-batches.zip
+__pycache__/

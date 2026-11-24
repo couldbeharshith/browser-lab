@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Lab</title>
+<style>
+:root {
+  color-scheme: dark;
+  --page: #080a09;
+  --nav: #0d100e;
+  --surface: #111512;
+  --well: #060807;
+  --line: #29332c;
+  --text: #f4f7ed;
+  --muted: #a7b0a4;
+  --accent: #dcff55;
+  --accent-ink: #172000;
+  --selected: #1d2813;
+  --selected-line: #4b632b;
+  --pass: #64f1a8;
+  --fail: #ff8188;
+  --corner: 3px;
+  --panel-corner: 5px;
+  font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+  color: var(--text);
+  background: var(--page);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body, h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+button, input, progress { border-radius: var(--corner); }
+dialog { border-radius: var(--panel-corner); }
+button, a, input[type=file] { cursor: pointer; }
+button {
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  font-weight: 600;
+}
+button:hover { border-color: #657466; }
+button:disabled { opacity: .54; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+a { color: var(--accent); text-underline-offset: .22em; }
+a:hover { color: var(--text); }
+h1 { font-size: clamp(1.8rem, 3vw, 2.7rem); line-height: 1.13; letter-spacing: -.047em; overflow-wrap: anywhere; }
+h2 { font-size: 1rem; font-weight: 650; overflow-wrap: anywhere; }
+h3 { font-size: .9rem; }
+small, .muted, dt { color: var(--muted); }
+code, dd, .mono, .file-details strong, .check strong { font-family: ui-monospace, Consolas, monospace; }
+header, .header-tools, .brand, .row, .section-head, .demo-row, .aside-heading { display: flex; align-items: center; gap: 12px; }
+header {
+  position: sticky; top: 0; z-index: 2;
+  min-height: 65px; justify-content: space-between;
+  padding: 0 clamp(16px, 3vw, 38px);
+  background: var(--nav); border-bottom: 1px solid var(--line);
+}
+.brand { font-size: 20px; font-weight: 680; letter-spacing: -.04em; }
+.mark { width: 17px; height: 17px; background: var(--accent); clip-path: polygon(0 0,100% 0,100% 36%,36% 36%,36% 100%,0 100%); }
+.header-tools { gap: 18px; }
+.connection { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.connection::before { content: ""; width: 6px; height: 6px; background: var(--pass); }
+.connection[data-offline=true]::before { background: var(--fail); }
+.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.primary:hover { background: #edff98; border-color: #edff98; }
+
+.shell { display: grid; grid-template-columns: 238px minmax(0,1fr); min-height: calc(100vh - 65px); }
+aside { background: var(--nav); padding: 24px 13px; border-right: 1px solid var(--line); min-width: 0; }
+.aside-heading { justify-content: space-between; padding: 0 10px 12px; }
+.aside-heading h2, .count { color: var(--muted); font-size: 12px; }
+.count { font-variant-numeric: tabular-nums; }
+#batch-empty { padding: 0 10px; font-size: .85rem; }
+.batch-nav { display: grid; gap: 4px; }
+.batch, .check { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+.batch-row { display: grid; grid-template-columns: minmax(0,1fr) 30px; align-items: center; padding-right: 4px; border: 1px solid transparent; border-radius: var(--panel-corner); }
+.batch { border: 0; padding: 10px 5px 10px 10px; min-width: 0; }
+.batch-row:hover { border-color: var(--line); }
+.batch-row[data-selected=true], .check[aria-pressed=true] {
+  background: var(--selected);
+  border-color: var(--selected-line);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.batch-delete { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border-color: transparent; color: var(--muted); }
+.batch-delete:not(:disabled):hover, .batch-delete:focus-visible { color: var(--fail); background: #291619; border-color: #65363c; }
+.trash-icon { position: relative; width: 10px; height: 9px; border: 1px solid currentColor; border-top: 0; border-radius: 0 0 1px 1px; margin-top: 3px; }
+.trash-icon::before { content: ""; position: absolute; top: -2px; left: -3px; right: -3px; height: 1px; background: currentColor; }
+.trash-icon::after { content: ""; position: absolute; top: -5px; left: 2px; width: 4px; height: 3px; border: 1px solid currentColor; border-bottom: 0; }
+.batch strong, .check strong { display: block; overflow-wrap: anywhere; }
+.batch small { display: block; font-weight: 400; margin-top: 2px; }
+main { width: 100%; min-width: 0; max-width: 1740px; margin-inline: auto; padding: clamp(20px,3.2vw,48px); }
+.summary { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 19px; margin-bottom: 22px; }
+.summary p { margin-top: 7px; font-size: .85rem; }
+.completion { display: grid; gap: 6px; width: min(100%, 220px); }
+.completion small { font-size: .77rem; }
+.state { color: var(--accent); font-size: .82rem; font-weight: 650; }
+.state[data-state=Succeeded] { color: var(--pass); }
+.state[data-state=Failed] { color: var(--fail); }
+progress { appearance: none; width: 100%; height: 5px; border: none; border-radius: 1px; background: var(--line); overflow: hidden; }
+progress::-webkit-progress-bar { background: var(--line); }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 1px; }
+progress::-moz-progress-bar { background: var(--accent); }
+.stats { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); border: 1px solid var(--line); border-radius: var(--panel-corner); background: var(--surface); margin-bottom: 18px; overflow: hidden; }
+.stat { padding: 12px 16px; min-width: 0; }
+.stat + .stat { border-left: 1px solid var(--line); }
+.stat span { display: block; color: var(--muted); font-size: .78rem; }
+.stat strong { display: block; font-size: clamp(1.35rem, 2.5vw, 1.85rem); line-height: 1.25; font-weight: 620; font-variant-numeric: tabular-nums; }
+.stat .good { color: var(--pass); }
+.stat .bad { color: var(--fail); }
+
+.workspace { display: grid; grid-template-columns: minmax(270px, .87fr) minmax(0,1.65fr); gap: 16px; align-items: start; }
+.check-column { min-width: 0; display: grid; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--panel-corner); min-width: 0; overflow: hidden; }
+.section-head, .row { justify-content: space-between; flex-wrap: wrap; }
+.panel > .section-head, .inspector-header { padding: 14px 16px; }
+.checks { padding: 0 8px 8px; }
+.check { display: grid; grid-template-columns: minmax(0,1fr) auto; border-color: transparent; padding: 10px 8px; }
+.check + .check { margin-top: 3px; }
+.check strong, .file-details strong { font-size: .81rem; }
+.description { display: block; color: var(--muted); font-family: "Segoe UI", system-ui, sans-serif; font-size: .83rem; font-weight: 400; line-height: 1.45; white-space: pre-line; overflow-wrap: anywhere; margin-top: 5px; }
+.tag { font-size: .73rem; padding: 2px 7px; color: var(--muted); border: 1px solid var(--line); border-radius: 2px; background: var(--nav); white-space: nowrap; }
+.tag.Succeeded { color: var(--pass); border-color: #28533b; background: #10251a; }
+.tag.Running { color: var(--accent); border-color: var(--selected-line); background: var(--selected); }
+.tag.Failed { color: var(--fail); border-color: #65363c; background: #291619; }
+.timeline .section-head small { font-size: .73rem; }
+#tracks { padding: 0 15px 9px; }
+.timeline-run { display: block; width: 100%; padding: 5px 0 2px; border: 0; text-align: left; font-size: .75rem; overflow-wrap: anywhere; }
+.timeline-run[aria-pressed=true], .timeline-run:hover { color: var(--accent); }
+.track { height: 5px; background: var(--line); position: relative; margin: 5px 0 10px; border-radius: 2px; overflow: hidden; }
+.track b { position: absolute; height: 100%; background: var(--accent); }
+.track b.Succeeded { background: var(--pass); }
+.track b.Failed { background: var(--fail); }
+
+.inspector-header { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: start; }
+.inspector-header h2 { font-size: 1.1rem; font-family: ui-monospace, Consolas, monospace; }
+.inspector-tools { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 0 16px; gap: 8px; }
+.inspector-tools a { font-size: .79rem; white-space: nowrap; }
+.tabs { display: flex; gap: 14px; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; font-size: .82rem; padding: 8px 0; color: var(--muted); }
+.tabs button[aria-pressed=true] { border-bottom-color: var(--accent); color: var(--accent); }
+.preview { aspect-ratio: 16/9; max-height: 620px; display: grid; place-items: center; background: var(--well); overflow: hidden; }
+.preview img, .preview video { width: 100%; height: 100%; object-fit: contain; display: block; min-height: 0; }
+.preview p { padding: 15px; text-align: center; }
+.preview.video-view { display: block; aspect-ratio: auto; max-height: none; }
+.video-view video { height: auto; max-height: 620px; background: var(--well); }
+.video-controls { width: 100%; display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--line); background: var(--surface); }
+.video-controls button { font-size: .77rem; padding: 4px 8px; white-space: nowrap; }
+.video-controls input { appearance: none; min-width: 0; width: 100%; height: 14px; margin: 0; background: transparent; }
+.video-controls input::-webkit-slider-runnable-track { height: 4px; background: var(--line); border-radius: 2px; }
+.video-controls input::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 2px; background: var(--accent); }
+.video-controls input::-moz-range-track { height: 4px; background: var(--line); border-radius: 2px; }
+.video-controls input::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 2px; background: var(--accent); }
+.video-controls output { color: var(--muted); font-size: .72rem; white-space: nowrap; }
+.video-view:fullscreen { display: grid; grid-template-rows: minmax(0,1fr) auto; background: var(--well); }
+.video-view:fullscreen video { height: 100%; max-height: none; }
+pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 400px; overflow: auto; background: var(--well); padding: 15px; margin: 0; color: var(--text); }
+.result { margin: 0; padding: 11px 16px; border-top: 1px solid var(--line); overflow-wrap: anywhere; font-size: .84rem; }
+.result[data-state=Succeeded] { color: var(--pass); }
+.result[data-state=Failed] { color: var(--fail); }
+dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 5px 14px; margin: 0; padding: 12px 16px 15px; border-top: 1px solid var(--line); font-size: 12px; }
+dd { margin: 0; overflow-wrap: anywhere; }
+
+.empty { max-width: 1110px; padding: clamp(14px,3vw,38px) 0; }
+.empty > p { margin: 11px 0 25px; }
+.setup { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(200px,1fr); gap: 16px; align-items: start; }
+.dropzone { display: grid; align-content: center; justify-items: start; gap: 5px; background: #141c0f; border: 1px dashed #657d35; border-radius: var(--panel-corner); padding: 13px; min-width: 0; text-align: left; }
+.dropzone:hover, .dropzone[data-dragging=true] { background: var(--selected); border-color: var(--accent); }
+.dropzone strong { font-size: .96rem; }
+.dropzone .upload-mark { color: var(--accent); font: 1.3rem ui-monospace, monospace; }
+.dropzone.hero { width: 100%; min-height: 185px; padding: 20px; }
+.dropzone.hero strong { font-size: 1.14rem; }
+.dropzone.hero small { font-weight: 400; }
+.examples { border: 1px solid var(--line); border-radius: var(--panel-corner); background: var(--surface); padding: 14px; min-width: 0; }
+.examples > p { margin: 6px 0 10px; font-size: .82rem; overflow-wrap: anywhere; }
+.example-link { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.example-link small { white-space: nowrap; }
+dialog { border: 1px solid #465741; background: var(--surface); color: var(--text); width: min(625px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 19px; }
+dialog::backdrop { background: #020503d6; }
+dialog h2 { font-size: 1.2rem; }
+dialog form { display: grid; gap: 11px; }
+dialog label { display: grid; gap: 4px; }
+dialog label.toggle { display: flex; gap: 7px; }
+input:not([type=checkbox]):not([type=range]) { padding: 7px 9px; background: var(--page); border: 1px solid var(--line); min-width: 0; }
+input[type=checkbox] { appearance: none; margin: 4px 0 0; display: inline-grid; place-items: center; width: 14px; height: 14px; border: 1px solid #71816d; background: var(--well); }
+input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+input[type=checkbox]:checked::after { content: ""; width: 7px; height: 4px; border: solid var(--accent-ink); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+.files { margin: 0; padding: 0; list-style: none; max-height: min(330px, 38vh); overflow: auto; }
+.files:empty { display: none; }
+.file-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 8px; border-bottom: 1px solid var(--line); padding: 7px 0; }
+.file-details strong, .file-details small { display: inline-block; overflow-wrap: anywhere; }
+.file-details small { margin-left: 7px; font-size: .73rem; }
+.file-row button, .file-count { font-size: .76rem; }
+.file-row button { padding: 3px 7px; }
+.file-count { color: var(--muted); }
+.demo-library { border-block: 1px solid var(--line); padding: 8px 0; }
+.demo-library summary { cursor: pointer; font-size: .84rem; color: var(--muted); }
+.demo-row { justify-content: space-between; }
+.demo-row button { border-color: transparent; padding: 5px 5px 5px 0; text-align: left; }
+.demo-row button:hover { color: var(--accent); }
+.actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.delete-dialog { width: min(410px, calc(100% - 24px)); }
+.delete-dialog p { margin: 9px 0 14px; overflow-wrap: anywhere; }
+.delete-dialog .actions { justify-content: flex-end; }
+.danger { color: var(--fail); border-color: #65363c; background: #291619; }
+.danger:hover { border-color: var(--fail); }
+.notice { margin-bottom: 12px; color: var(--muted); font-size: .85rem; }
+.error { color: var(--fail); }
+#error:empty, #upload-error:empty, #delete-error:empty, .notice:empty { display: none; }
+@media(max-width:1100px) {
+  .shell { grid-template-columns: 190px minmax(0,1fr); }
+  .workspace { grid-template-columns: 1fr; }
+  .check-column { grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); align-items: start; }
+}
+@media(max-width:720px) {
+  .shell { grid-template-columns: minmax(0,1fr); }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); padding: 10px; }
+  .batch-nav { display: flex; overflow: auto; gap: 6px; }
+  .batch-row { flex: 0 0 156px; border-color: var(--line); }
+  .batch { padding: 7px; }
+  .header-tools { gap: 8px; }
+  .connection { font-size: 0; }
+  .stat { padding: 7px 5px 10px; }
+  .stat span { font-size: .67rem; }
+  .setup, .check-column { grid-template-columns: 1fr; }
+  .dropzone.hero { min-height: 135px; }
+}
+@media(max-width:375px) {
+  .inspector-tools { flex-wrap: wrap; }
+  .inspector-tools a { margin-bottom: 8px; }
+  .video-controls { grid-template-columns: auto minmax(0,1fr) auto; }
+  .video-controls button:last-child { grid-column: 3; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true"></span> Browser Lab</div>
+  <div class="header-tools"><span class="connection" id="connection">Connecting</span><button type="button" class="primary" data-upload>New batch</button></div>
+</header>
+<div class="shell">
+  <aside aria-labelledby="batches-title">
+    <div class="aside-heading"><h2 id="batches-title">Batch history</h2><span id="batch-count" class="count">0</span></div>
+    <nav id="batch-nav" class="batch-nav" aria-label="Batches"></nav>
+    <p id="batch-empty" class="muted">No batches yet.</p>
+  </aside>
+  <main>
+    <p id="error" class="error" role="status"></p>
+    <p id="notice" class="notice" role="status"></p>
+    <section id="empty" class="empty">
+      <h1>Run your first batch.</h1>
+      <p class="muted">Upload Python Playwright scripts and inspect the screenshots, logs, and recordings from each check.</p>
+      <div class="setup">
+        <button type="button" class="dropzone hero" id="first-upload" data-upload>
+          <span class="upload-mark" aria-hidden="true">↑</span>
+          <strong>Drop .py files here</strong>
+          <small>or click to browse · up to 8 scripts per batch</small>
+        </button>
+        <section class="examples" aria-labelledby="examples-title">
+          <h2 id="examples-title">Example scripts</h2>
+          <p class="muted">Open a batch folder under <code>temp/browser-lab-demos</code> and upload its Python files.</p>
+          <div id="example-downloads"></div>
+        </section>
+      </div>
+    </section>
+    <div id="batch" hidden>
+      <section class="summary">
+        <div><h1 id="batch-title"></h1><p class="muted" id="batch-meta"></p></div>
+        <div class="completion"><span id="batch-state" class="state"></span><progress id="batch-progress" aria-label="Checks completed"></progress><small id="batch-completion"></small></div>
+      </section>
+      <div class="stats" id="stats" aria-label="Batch statistics"></div>
+      <div class="workspace">
+        <div class="check-column">
+          <section class="panel checks-panel">
+            <div class="section-head"><h2>Script checks</h2><small id="pending"></small></div>
+            <div id="checks" class="checks"></div>
+          </section>
+          <section class="panel timeline" id="timeline" hidden>
+            <div class="section-head"><h2>Worker timeline</h2><small id="overlap"></small></div>
+            <div id="tracks"></div>
+          </section>
+        </div>
+        <section class="panel inspector">
+          <div class="inspector-header">
+            <div><h2 id="check-title">Run evidence</h2><p id="check-description" class="description"></p></div>
+            <span id="check-state" class="tag"></span>
+          </div>
+          <div class="inspector-tools">
+          <div class="tabs" id="tabs" role="group" aria-label="Evidence views">
+            <button type="button" data-tab="screenshot">Screenshot</button><button type="button" data-tab="log">Logs</button><button type="button" data-tab="video">Video</button>
+          </div>
+            <a id="download" hidden>Download PNG</a>
+          </div>
+          <div class="preview" id="media"></div><pre id="log" hidden></pre>
+          <p class="result muted" id="result" role="status"></p>
+          <dl><dt>Job ID</dt><dd id="run-id"></dd><dt>Worker pod</dt><dd id="pod"></dd><dt>Started</dt><dd id="started"></dd><dt>Finished</dt><dd id="finished"></dd><dt>Elapsed</dt><dd id="elapsed"></dd></dl>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="upload" aria-labelledby="upload-title">
+  <form id="upload-form">
+    <div class="row"><h2 id="upload-title">New batch</h2><button type="button" id="close-upload">Cancel</button></div>
+    <label>Batch name <input id="batch-name" maxlength="80" placeholder="e.g. Storefront smoke checks"></label>
+    <input id="scripts" type="file" aria-label="Python scripts" accept=".py,text/x-python" multiple hidden>
+    <button type="button" class="dropzone" id="choose-scripts">
+      <strong>Choose or drop Python files</strong>
+      <small>Up to 8 files of 64 KiB each. Start each with a short docstring.</small>
+    </button>
+    <ul id="files" class="files" aria-label="Selected scripts"></ul>
+    <label class="toggle"><input id="record-video" type="checkbox"> Record a video for each check</label>
+    <details class="demo-library" id="demo-options"><summary>Load example scripts</summary><div id="demo-library"></div></details>
+    <p id="upload-error" class="error" role="status"></p>
+    <div class="actions"><span id="file-count" class="file-count" role="status"></span><button type="submit" class="primary" id="submit">Run batch</button></div>
+  </form>
+</dialog>
+<dialog id="delete-batch" class="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-message">
+  <h2 id="delete-title">Delete batch?</h2>
+  <p id="delete-message" class="muted"><strong id="delete-name"></strong> will be removed from batch history. Its run files are retained on disk.</p>
+  <p id="delete-error" class="error" role="status"></p>
+  <div class="actions">
+    <button type="button" id="cancel-delete" autofocus>Cancel</button>
+    <button type="button" class="danger" id="confirm-delete">Delete batch</button>
+  </div>
+</dialog>
+
+<script>
+const el = (id) => document.getElementById(id);
+const dialog = el('upload');
+const time = (value) => value ? new Date(value).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '—';
+const shortId = (value) => value.slice(0, 14);
+const display = {Succeeded:'Passed', Failed:'Failed', Pending:'Queued', Running:'Running'};
+let batches = [], selectedBatch, selectedRun, selectedTab = 'screenshot', files = [];
+let snapshot = '', evidenceKey = '', logRequest = 0;
+let preparingFiles = false, submitting = false, libraryRequest;
+let batchToDelete, deleting = false, historyRevision = 0;
+
+const node = (tag, text, className) => {
+  const element = document.createElement(tag);
+  if (text !== undefined) element.textContent = text;
+  if (className) element.className = className;
+  return element;
+};
+
+async function api(url, options) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(typeof payload.detail === 'string' ? payload.detail : 'Request could not be completed.');
+  }
+  return response.json();
+}
+
+function listButton(name, detail, className, selected, onClick, badge, focusKey, description) {
+  const button = node('button', undefined, className);
+  button.type = 'button';
+  button.setAttribute('aria-pressed', String(selected));
+  if (focusKey) button.dataset.focusKey = focusKey;
+  const text = node('span');
+  text.append(node('strong', name));
+  if (description) text.append(node('span', description, 'description'));
+  if (detail) text.append(node('small', detail));
+  button.append(text);
+  if (badge) button.append(badge);
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+function replaceControls(container, controls) {
+  const active = document.activeElement;
+  const key = container.contains(active) ? active.dataset.focusKey : undefined;
+  container.replaceChildren(...controls);
+  if (key) container.querySelector('[data-focus-key="' + CSS.escape(key) + '"]')?.focus({preventScroll:true});
+}
+
+function selectRun(id) {
+  selectedRun = id;
+  selectedTab = 'screenshot';
+  renderBatch();
+}
+
+function selectBatch(id) {
+  selectedBatch = id;
+  selectedRun = undefined;
+  selectedTab = 'screenshot';
+}
+
+function batchRow(batch) {
+  const row = node('div', undefined, 'batch-row');
+  const selected = batch.id === selectedBatch;
+  row.dataset.selected = String(selected);
+  const finished = batch.runs.filter(run => ['Succeeded', 'Failed'].includes(run.status)).length;
+  const show = listButton(batch.name, finished + '/' + batch.runs.length + ' finished', 'batch', selected, () => {
+    selectBatch(batch.id);
+    renderBatch();
+  }, undefined, batch.id);
+  const remove = node('button', undefined, 'batch-delete');
+  remove.type = 'button';
+  remove.dataset.focusKey = 'delete-' + batch.id;
+  remove.disabled = finished !== batch.runs.length;
+  remove.setAttribute('aria-label', 'Delete ' + batch.name);
+  remove.title = remove.disabled ? 'Wait for the batch to finish' : 'Delete batch';
+  const icon = node('span', undefined, 'trash-icon');
+  icon.setAttribute('aria-hidden', 'true');
+  remove.append(icon);
+  remove.addEventListener('click', () => {
+    batchToDelete = batch;
+    el('delete-name').textContent = batch.name;
+    el('delete-error').textContent = '';
+    el('delete-batch').showModal();
+  });
+  row.append(show, remove);
+  return row;
+}
+
+el('cancel-delete').addEventListener('click', () => el('delete-batch').close());
+el('delete-batch').addEventListener('cancel', event => { if (deleting) event.preventDefault(); });
+el('confirm-delete').addEventListener('click', async () => {
+  if (deleting || !batchToDelete) return;
+  deleting = true;
+  const batch = batchToDelete;
+  const confirm = el('confirm-delete'), cancel = el('cancel-delete');
+  confirm.disabled = cancel.disabled = true;
+  confirm.textContent = 'Deleting…';
+  el('delete-error').textContent = '';
+  try {
+    await api('/api/batches/' + encodeURIComponent(batch.id), {method:'DELETE'});
+    historyRevision += 1;
+    const index = batches.findIndex(item => item.id === batch.id);
+    batches = batches.filter(item => item.id !== batch.id);
+    if (selectedBatch === batch.id) selectBatch(batches[Math.max(0, Math.min(index, batches.length - 1))]?.id);
+    snapshot = JSON.stringify(batches);
+    el('delete-batch').close();
+    renderBatch();
+    const focus = el('batch-nav').querySelector('.batch[aria-pressed=true]') || document.querySelector('header [data-upload]');
+    focus.focus();
+    el('notice').textContent = 'Removed “' + batch.name + '” from batch history.';
+  } catch (error) {
+    el('delete-error').textContent = error.message;
+  } finally {
+    confirm.disabled = cancel.disabled = false;
+    confirm.textContent = 'Delete batch';
+    deleting = false;
+  }
+});
+
+function updateTimeline(runs) {
+  const now = Date.now();
+  const intervals = runs.filter(run => run.started_at).map(run => ({
+    run, start: Date.parse(run.started_at),
+    end: Math.max(Date.parse(run.started_at), run.finished_at ? Date.parse(run.finished_at) : now),
+  }));
+  el('timeline').hidden = !intervals.length;
+  if (!intervals.length) return;
+  const from = Math.min(...intervals.map(item => item.start));
+  const until = Math.max(...intervals.map(item => item.end));
+  const span = Math.max(1000, until - from);
+  const overlap = intervals.some((one, index) => intervals.slice(index + 1).some(two =>
+    Math.min(one.end, two.end) > Math.max(one.start, two.start)));
+  el('overlap').textContent = overlap ? 'Concurrent workers verified' : 'Seconds since first worker start';
+  replaceControls(el('tracks'), intervals.map(({run, start, end}) => {
+    const group = node('button', undefined, 'timeline-run');
+    group.type = 'button';
+    group.dataset.focusKey = 'timeline-' + run.id;
+    group.setAttribute('aria-pressed', String(run.id === selectedRun));
+    group.addEventListener('click', () => selectRun(run.id));
+    const label = node('span', run.name + ' · ' + ((end - start) / 1000).toFixed(0) + ' s');
+    const track = node('span', undefined, 'track');
+    track.style.display = 'block';
+    track.setAttribute('aria-hidden', 'true');
+    const bar = node('b', undefined, run.status);
+    bar.style.left = ((start - from) / span * 100) + '%';
+    bar.style.width = ((end - start) / span * 100) + '%';
+    track.append(bar); group.append(label, track);
+    return group;
+  }));
+}
+
+function renderBatch() {
+  const batch = batches.find(item => item.id === selectedBatch);
+  el('batch').hidden = !batch;
+  el('empty').hidden = Boolean(batch);
+  el('batch-empty').hidden = batches.length > 0;
+  el('batch-count').textContent = batches.length;
+  replaceControls(el('batch-nav'), batches.map(batchRow));
+  if (!batch) {
+    el('media').querySelector('video')?.pause();
+    return;
+  }
+  const counts = {Succeeded:0, Failed:0, Pending:0, Running:0};
+  for (const run of batch.runs) counts[run.status] += 1;
+  const finished = counts.Succeeded + counts.Failed;
+  el('batch-title').textContent = batch.name;
+  el('batch-meta').textContent = shortId(batch.id) + ' · ' + new Date(batch.created_at).toLocaleString() + (batch.record_video ? ' · Video enabled' : '');
+  const state = el('batch-state');
+  const complete = finished === batch.runs.length;
+  state.textContent = complete ? (counts.Failed ? 'Completed with failures' : 'All checks passed') : 'In progress';
+  state.dataset.state = complete ? (counts.Failed ? 'Failed' : 'Succeeded') : 'Running';
+  el('batch-progress').max = batch.runs.length;
+  el('batch-progress').value = finished;
+  el('batch-completion').textContent = finished + ' of ' + batch.runs.length + ' completed';
+  el('pending').textContent = batch.runs.length + (batch.runs.length === 1 ? ' script' : ' scripts');
+  const stats = [['Checks',batch.runs.length],['Queued',counts.Pending],['Running',counts.Running],['Passed',counts.Succeeded,'good'],['Failed',counts.Failed,'bad']];
+  el('stats').replaceChildren(...stats.map(([name, value, color]) => {
+    const stat = node('div', undefined, 'stat');
+    stat.append(node('span', name), node('strong', value, color));
+    return stat;
+  }));
+  if (!batch.runs.some(run => run.id === selectedRun)) selectedRun = batch.runs[0]?.id;
+  replaceControls(el('checks'), batch.runs.map(run =>
+    listButton(run.name, '', 'check', run.id === selectedRun, () => selectRun(run.id),
+      node('span', display[run.status], 'tag ' + run.status), run.id, run.description || 'No docstring was included.')));
+  updateTimeline(batch.runs);
+  renderEvidence(batch.runs.find(run => run.id === selectedRun));
+}
+
+function updateElapsed(run) {
+  const seconds = run?.started_at
+    ? (Date.parse(run.finished_at || new Date().toISOString()) - Date.parse(run.started_at)) / 1000 : null;
+  el('elapsed').textContent = seconds === null ? '—' : Math.max(0, seconds).toFixed(0) + ' s';
+}
+
+function renderVideo(media, url) {
+  media.classList.add('video-view');
+  const video = node('video');
+  video.src = url;
+  video.preload = 'metadata';
+  video.playsInline = true;
+  const controls = node('div', undefined, 'video-controls');
+  const play = node('button', 'Play');
+  const seek = node('input');
+  const elapsed = node('output');
+  const fullscreen = node('button', 'Full screen');
+  play.type = fullscreen.type = 'button';
+  seek.type = 'range';
+  seek.min = '0';
+  seek.step = '.1';
+  seek.value = '0';
+  seek.disabled = true;
+  seek.setAttribute('aria-label', 'Video position');
+  const stamp = seconds => Number.isFinite(seconds)
+    ? Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2, '0') : '0:00';
+  const update = () => {
+    seek.value = String(video.currentTime);
+    elapsed.textContent = stamp(video.currentTime) + ' / ' + stamp(video.duration);
+    play.textContent = video.paused ? 'Play' : 'Pause';
+  };
+  video.addEventListener('loadedmetadata', () => {
+    seek.max = String(video.duration);
+    seek.disabled = !Number.isFinite(video.duration);
+    update();
+  });
+  for (const event of ['timeupdate', 'play', 'pause', 'ended']) video.addEventListener(event, update);
+  play.addEventListener('click', () => {
+    if (video.paused) video.play().catch(update);
+    else video.pause();
+  });
+  seek.addEventListener('input', () => { video.currentTime = Number(seek.value); });
+  fullscreen.hidden = !media.requestFullscreen;
+  fullscreen.addEventListener('click', () => {
+    const action = document.fullscreenElement === media ? document.exitFullscreen() : media.requestFullscreen();
+    action.catch(() => {});
+  });
+  media.onfullscreenchange = () => { fullscreen.textContent = document.fullscreenElement === media ? 'Exit full screen' : 'Full screen'; };
+  update();
+  controls.append(play, seek, elapsed, fullscreen);
+  media.replaceChildren(video, controls);
+}
+
+function renderEvidence(run) {
+  if (!run) return;
+  el('check-title').textContent = run.name;
+  el('check-description').textContent = run.description || 'No docstring was included.';
+  el('check-state').textContent = display[run.status];
+  el('check-state').className = 'tag ' + run.status;
+  el('run-id').textContent = run.id;
+  el('pod').textContent = run.pod || '—';
+  el('started').textContent = time(run.started_at);
+  el('finished').textContent = time(run.finished_at);
+  updateElapsed(run);
+  el('result').textContent = run.message || display[run.status];
+  el('result').dataset.state = run.status;
+  const link = el('download');
+  link.hidden = !run.screenshot;
+  if (run.screenshot) link.href = run.screenshot;
+  for (const button of el('tabs').querySelectorAll('button')) {
+    const tab = button.dataset.tab;
+    button.setAttribute('aria-pressed', String(tab === selectedTab));
+    button.disabled = tab !== 'screenshot' && !run[tab];
+  }
+  const url = run[selectedTab];
+  const key = [run.id, selectedTab, url, !url || selectedTab === 'log' ? run.status : ''].join('|');
+  if (key === evidenceKey) return;
+  evidenceKey = key;
+  const request = ++logRequest;
+  const media = el('media'), log = el('log');
+  media.querySelector('video')?.pause();
+  media.classList.remove('video-view');
+  media.hidden = selectedTab === 'log';
+  log.hidden = selectedTab !== 'log';
+  if (media.hidden) media.replaceChildren();
+  if (!url) {
+    const finished = ['Succeeded', 'Failed'].includes(run.status);
+    media.replaceChildren(node('p', finished ? 'The worker did not capture a screenshot.' : 'Waiting for evidence…', 'muted'));
+    return;
+  }
+  if (selectedTab === 'log') {
+    log.textContent = 'Loading logs…';
+    fetch(url, {cache:'no-store'}).then(response => {
+      if (!response.ok) throw new Error('Log unavailable');
+      return response.text();
+    }).then(data => {
+      if (request === logRequest) log.textContent = data || 'No log output yet.';
+    }).catch(() => { if (request === logRequest) log.textContent = 'Could not load logs.'; });
+  } else if (selectedTab === 'video') {
+    renderVideo(media, url);
+  } else {
+    const image = node('img');
+    image.src = url + '?inline=true';
+    image.alt = 'Screenshot captured by ' + run.name;
+    media.replaceChildren(image);
+  }
+}
+
+el('tabs').addEventListener('click', event => {
+  if (!event.target.dataset.tab) return;
+  selectedTab = event.target.dataset.tab;
+  renderBatch();
+});
+
+function showFiles() {
+  el('files').replaceChildren(...files.map(file => {
+    const row = node('li', undefined, 'file-row');
+    const details = node('div', undefined, 'file-details');
+    const name = node('strong', file.name);
+    details.append(name, node('small', (file.bytes / 1024).toFixed(1) + ' KiB'));
+    details.append(node('p', file.error || file.description, file.error ? 'description error' : 'description'));
+    const remove = node('button', 'Remove');
+    remove.type = 'button';
+    remove.disabled = submitting || preparingFiles;
+    remove.setAttribute('aria-label', 'Remove ' + file.name);
+    remove.addEventListener('click', () => {
+      files = files.filter(item => item !== file);
+      showFiles();
+      el('choose-scripts').focus();
+    });
+    row.append(details, remove);
+    return row;
+  }));
+  el('file-count').textContent = preparingFiles ? 'Reading files…' : files.length + ' of 8 selected';
+  el('choose-scripts').disabled = submitting || preparingFiles;
+  el('close-upload').disabled = submitting || preparingFiles;
+  el('submit').disabled = submitting || preparingFiles || !files.length || files.some(file => file.error);
+  el('submit').textContent = submitting ? 'Submitting…' : 'Run batch';
+}
+
+function startUpload(selected = []) {
+  el('upload-form').reset();
+  el('demo-options').open = false;
+  files = [];
+  showFiles();
+  el('upload-error').textContent = '';
+  dialog.showModal();
+  if (selected.length) collectFiles(selected);
+}
+
+for (const button of document.querySelectorAll('[data-upload]')) button.addEventListener('click', () => startUpload());
+el('close-upload').addEventListener('click', () => dialog.close());
+el('choose-scripts').addEventListener('click', () => el('scripts').click());
+dialog.addEventListener('cancel', event => { if (preparingFiles || submitting) event.preventDefault(); });
+el('scripts').addEventListener('change', event => {
+  collectFiles([...event.target.files]);
+  event.target.value = '';
+});
+
+async function collectFiles(selected) {
+  if (!selected.length || submitting || preparingFiles) return;
+  el('upload-error').textContent = '';
+  const names = [...files, ...selected].map(file => file.name.toLowerCase());
+  if (names.length > 8 || selected.some(file => !file.size || file.size > 65536 || !/^[\w .-]{1,75}\.py$/.test(file.name))) {
+    el('upload-error').textContent = 'Choose up to eight nonempty .py files of 64 KiB or less. Use simple filenames.';
+    return;
+  }
+  if (new Set(names).size !== names.length) {
+    el('upload-error').textContent = 'This batch already contains a file with that name.';
+    return;
+  }
+  preparingFiles = true;
+  showFiles();
+  try {
+    const additions = await Promise.all(selected.map(async file => ({name:file.name, bytes:file.size, source:await file.text()})));
+    const scriptInfo = await api('/api/scripts/describe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({scripts:additions})});
+    files = [...files, ...additions.map((file, index) => ({...file, ...scriptInfo[index]}))];
+  } catch (error) { el('upload-error').textContent = error.message || 'A script could not be read.'; }
+  finally { preparingFiles = false; showFiles(); }
+}
+
+function bindDrop(target, onFiles) {
+  target.addEventListener('dragover', event => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    target.dataset.dragging = 'true';
+  });
+  target.addEventListener('dragleave', event => {
+    if (!target.contains(event.relatedTarget)) delete target.dataset.dragging;
+  });
+  target.addEventListener('drop', event => {
+    event.preventDefault();
+    delete target.dataset.dragging;
+    const dropped = [...event.dataTransfer.files];
+    if (dropped.length) onFiles(dropped);
+  });
+}
+
+bindDrop(el('first-upload'), startUpload);
+bindDrop(el('choose-scripts'), collectFiles);
+
+function getLibrary() {
+  libraryRequest ||= api('/api/example-batches').catch(error => { libraryRequest = undefined; throw error; });
+  return libraryRequest;
+}
+
+async function showExampleFolders() {
+  const box = el('example-downloads');
+  try {
+    const groups = await getLibrary();
+    box.replaceChildren(...groups.map(group => {
+      const row = node('div', undefined, 'example-link');
+      row.append(node('span', group.name), node('small', group.files.length + ' scripts'));
+      return row;
+    }));
+  } catch { box.textContent = 'Example folders are listed in the project workspace.'; }
+}
+
+async function showLibrary() {
+  const library = el('demo-library');
+  if (library.childElementCount) return;
+  try {
+    const groups = await getLibrary();
+    library.replaceChildren(...groups.map(group => {
+      const row = node('div', undefined, 'demo-row');
+      const button = node('button', group.name);
+      button.type = 'button';
+      button.addEventListener('click', async () => {
+        if (submitting || preparingFiles) return;
+        preparingFiles = true;
+        showFiles();
+        button.disabled = true;
+        try {
+          const examples = await api('/api/examples');
+          const selected = group.files.map(name => examples.find(file => file.name === name));
+          if (selected.some(file => !file)) throw new Error('A demo script is unavailable.');
+          files = selected.map(file => ({...file, bytes:new TextEncoder().encode(file.source).length}));
+          el('scripts').value = '';
+          el('batch-name').value = group.name;
+          el('record-video').checked = true;
+          el('upload-error').textContent = '';
+        } catch (error) { el('upload-error').textContent = error.message; }
+        finally { button.disabled = false; preparingFiles = false; showFiles(); }
+      });
+      row.append(button, node('small', group.files.length + ' scripts'));
+      return row;
+    }));
+  } catch (error) { el('upload-error').textContent = error.message; }
+}
+
+el('demo-options').addEventListener('toggle', event => { if (event.target.open) showLibrary(); });
+showExampleFolders();
+
+el('upload-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!files.length || files.some(file => file.error) || submitting || preparingFiles) return;
+  submitting = true;
+  showFiles();
+  el('upload-error').textContent = '';
+  try {
+    const batch = await api('/api/batches', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({
+      name:el('batch-name').value, scripts:files.map(({name, source}) => ({name, source})), record_video:el('record-video').checked,
+    })});
+    selectBatch(batch.id);
+    el('notice').textContent = '';
+    dialog.close();
+  } catch (error) { el('upload-error').textContent = error.message; }
+  finally { submitting = false; showFiles(); }
+});
+
+async function refresh() {
+  try {
+    const revision = historyRevision;
+    const latest = await api('/api/batches', {cache:'no-store'});
+    if (revision !== historyRevision) return;
+    const removed = batches.some(item => item.id === selectedBatch) && !latest.some(item => item.id === selectedBatch);
+    batches = latest;
+    if (!selectedBatch || removed) selectBatch(batches[0]?.id);
+    const next = JSON.stringify(batches);
+    if (next !== snapshot) { snapshot = next; renderBatch(); }
+    else {
+      const batch = batches.find(item => item.id === selectedBatch);
+      if (batch?.runs.some(run => run.status === 'Running')) {
+        updateTimeline(batch.runs);
+        updateElapsed(batch.runs.find(run => run.id === selectedRun));
+      }
+    }
+    el('connection').textContent = 'Kubernetes connected';
+    el('connection').dataset.offline = 'false';
+    el('error').textContent = '';
+  } catch {
+    el('connection').textContent = 'Reconnecting';
+    el('connection').dataset.offline = 'true';
+    el('error').textContent = 'Live batch updates are temporarily unavailable.';
+  } finally { setTimeout(refresh, 1300); }
+}
+refresh();
+</script>
+</body>
+</html>

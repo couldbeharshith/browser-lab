@@ -1,0 +1,16 @@
+**
+!pyproject.toml
+!uv.lock
+!api/
+!api/Dockerfile
+!api/main.py
+!api/dashboard.html
+!api/shop.html
+!api/shop-assets/
+!api/shop-assets/*.png
+!api/examples/
+!api/examples/*.py
+!worker/
+!worker/Dockerfile
+!worker/run.py
+!worker/demo.html

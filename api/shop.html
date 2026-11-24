@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Supply</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --background: #171816;
+    --surface: #20211e;
+    --ink: #f4f1e8;
+    --muted: #b2b1a5;
+    --line: #3c3d36;
+    --accent: #e2e8c7;
+    font: 14px/1.5 "Segoe UI", system-ui, sans-serif;
+    background: var(--background);
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body, h1, h2, p { margin: 0; }
+  button, input { font: inherit; }
+  button, a, input[type=search] { cursor: pointer; }
+  button { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  button:disabled { opacity: .45; cursor: default; }
+  .frame { width: min(100% - 48px, 1200px); margin-inline: auto; }
+  .masthead { border-bottom: 1px solid var(--line); }
+  .masthead .frame, .top-actions, .wordmark { display: flex; align-items: center; gap: 16px; }
+  .masthead .frame { justify-content: space-between; min-height: 58px; }
+  .wordmark { text-decoration: none; color: inherit; font: 600 24px/1 Georgia, serif; letter-spacing: -.055em; gap: 9px; }
+  .wordmark::before { content: ""; width: 13px; height: 13px; border: 1px solid var(--accent); transform: rotate(45deg); }
+  .top-actions { gap: 12px; font-size: 13px; }
+  .top-actions a { color: var(--muted); text-decoration: none; }
+  .top-actions a:hover { color: var(--ink); }
+  main { padding: clamp(18px, 2.6vw, 32px) 0 68px; }
+  .intro { display: flex; align-items: end; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+  .intro h1 { font: 400 clamp(35px, 5.5vw, 66px)/1 Georgia, serif; letter-spacing: -.07em; }
+  .intro p { margin-top: 7px; color: var(--muted); }
+  #signed-in { color: var(--accent); font-size: 12px; text-align: right; }
+  .shop { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 27%); gap: 24px; align-items: start; }
+  .catalog { min-width: 0; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px 15px; flex-wrap: wrap; padding-bottom: 11px; }
+  .categories { display: flex; gap: 12px; }
+  .tab { background: transparent; border: 0; border-bottom: 1px solid transparent; padding: 6px 1px; color: var(--muted); }
+  .tab[aria-pressed=true] { border-color: var(--accent); color: var(--ink); }
+  .search { display: flex; }
+  .search input, .field input { min-width: 0; border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; background: var(--background); color: var(--ink); }
+  .search input { width: min(220px, 43vw); cursor: text; }
+  .search input::placeholder { color: var(--muted); }
+  .products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .product { min-width: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); overflow: hidden; }
+  .product img { display: block; width: 100%; height: clamp(145px, 19vw, 285px); object-fit: cover; }
+  .product[data-product=tote] img { object-fit: contain; background: #3c352e; }
+  .product .details { display: grid; gap: 8px; padding: 10px; }
+  .product h2 { font: 500 clamp(17px, 2.4vw, 24px)/1.1 Georgia, serif; letter-spacing: -.03em; }
+  .product p { font-size: 12px; color: var(--muted); }
+  .product .row, .bag .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .button { padding: 6px 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); font-weight: 600; }
+  .button:not(:disabled):hover { border-color: var(--muted); }
+  .primary { background: var(--accent); border-color: var(--accent); color: #202518; }
+  .primary:not(:disabled):hover { background: #f0f3db; }
+  .bag { border: 1px solid var(--line); background: var(--surface); padding: 14px; border-radius: 5px; }
+  .bag h2 { font: 500 24px/1 Georgia, serif; letter-spacing: -.035em; }
+  .bag header { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .bag [data-testid=cart-count], .empty, .line small { color: var(--muted); font-size: 12px; }
+  .empty { padding: 13px 0; }
+  #bag-items { list-style: none; margin: 0; padding: 0; }
+  .line { display: grid; grid-template-columns: 36px minmax(0,1fr) auto; gap: 7px; align-items: center; padding: 8px 0; }
+  .line + .line { border-top: 1px solid var(--line); }
+  .line img { width: 36px; height: 33px; object-fit: cover; border-radius: 2px; }
+  .line small { display: block; font-size: 11px; }
+  .line strong { display: block; font-size: 12px; }
+  .subtotal { border-top: 1px solid var(--line); padding: 9px 0; }
+  .bag .primary { width: 100%; }
+  #remove { margin-top: 7px; font-size: 11px; }
+  #no-products { padding: 25px 14px; border: 1px dashed var(--line); color: var(--muted); }
+  dialog { width: min(100% - 28px, 405px); max-height: calc(100% - 22px); border: 1px solid #5a5d50; border-radius: 7px; padding: 19px; background: var(--surface); color: var(--ink); }
+  dialog::backdrop { background: #090a08b8; }
+  .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  dialog h2 { font: 500 29px/1.05 Georgia, serif; letter-spacing: -.04em; }
+  dialog form, .field { display: grid; gap: 6px; }
+  dialog form { gap: 11px; }
+  .field { color: var(--muted); font-size: 12px; }
+  #login-error { color: #ffc0af; }
+  #order-review { display: flex; justify-content: space-between; border-block: 1px solid var(--line); padding: 9px 0; }
+  #confirmation { color: var(--accent); margin-bottom: 10px; }
+  .demo-caption { display: flex; align-items: center; gap: 13px; font-size: 16px; line-height: 1.25; font-weight: 650; color: #f7faef; background: #252f20; border: 1px solid #98ae73; border-radius: 6px; padding: 10px 14px; box-shadow: 0 4px 16px #080a06a0; }
+  .demo-caption .step-number { flex: none; color: #242d1a; background: #e0edbd; border-radius: 3px; font: 700 11px/1.3 ui-monospace, monospace; padding: 4px 6px; letter-spacing: .03em; }
+  #demo-step { position: fixed; left: 50%; bottom: 9px; width: max-content; max-width: min(780px, calc(100% - 24px)); transform: translateX(-50%); z-index: 2; }
+  .dialog-caption { margin-top: 12px; }
+  #pointer { position: fixed; width: 24px; height: 24px; border: 2px solid #f5ffd7; background: #475a2c55; border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 0 2px #202519a0; pointer-events: none; z-index: 3; }
+  #pointer.pressed { background: #f2ffd099; box-shadow: 0 0 0 6px #dff7a05c; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (min-width: 691px) and (max-height: 600px) {
+    main { padding-top: 17px; }
+    .intro h1 { font-size: clamp(35px, 4.6vw, 49px); }
+    .intro { margin-bottom: 11px; }
+    .product img { height: clamp(130px, 16vw, 165px); }
+  }
+  @media (max-width: 690px) {
+    .frame { width: calc(100% - 26px); }
+    .shop { grid-template-columns: 1fr; gap: 16px; }
+    .intro { display: block; }
+    #signed-in { margin-top: 7px; text-align: left; }
+    .product .row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="frame">
+    <a href="/demo-shop" class="wordmark">Field Supply</a>
+    <div class="top-actions">
+      <button type="button" class="button" id="account">Account</button>
+      <a href="#shopping-bag">Shopping bag <span id="bag-count">(0)</span></a>
+    </div>
+  </div>
+</header>
+<main class="frame">
+  <div class="intro">
+    <div><h1>Everyday goods.</h1><p>Desk and carry essentials.</p></div>
+    <p id="signed-in" role="status"></p>
+  </div>
+  <div class="shop">
+    <section class="catalog" aria-label="Shop products">
+      <div class="toolbar">
+        <div class="categories" role="group" aria-label="Product category">
+          <button class="tab" type="button" data-category="all" aria-pressed="true">All goods</button>
+          <button class="tab" type="button" data-category="desk" aria-pressed="false">Desk</button>
+          <button class="tab" type="button" data-category="carry" aria-pressed="false">Carry</button>
+        </div>
+        <label class="search"><span class="visually-hidden">Search products</span><input id="search" type="search" placeholder="Search products"></label>
+      </div>
+      <div class="products" id="products">
+        <article class="product" data-product="notebook" data-category="desk" data-price="12">
+          <img src="/demo-shop/assets/notebook.png" alt="Moss-green clothbound notebook">
+          <div class="details">
+            <div><h2>Field Notebook</h2><p>Grid paper · Moss</p></div>
+            <div class="row"><strong class="price">$12.00</strong><button class="button" type="button" aria-label="Add Field Notebook">Add to bag</button></div>
+          </div>
+        </article>
+        <article class="product" data-product="tote" data-category="carry" data-price="18">
+          <img src="/demo-shop/assets/tote.png" alt="Natural heavyweight canvas tote">
+          <div class="details">
+            <div><h2>Canvas Tote</h2><p>Heavy canvas · Natural</p></div>
+            <div class="row"><strong class="price">$18.00</strong><button class="button" type="button" aria-label="Add Canvas Tote">Add to bag</button></div>
+          </div>
+        </article>
+      </div>
+      <p id="no-products" hidden>No products match your search.</p>
+    </section>
+    <aside class="bag" id="shopping-bag" aria-labelledby="bag-title">
+      <header class="row"><h2 id="bag-title">Shopping bag</h2><span data-testid="cart-count">0 items</span></header>
+      <p class="empty" id="empty-bag">Your bag is empty.</p>
+      <ul id="bag-items"></ul>
+      <div class="row subtotal"><strong>Subtotal</strong><strong class="price" data-testid="cart-total">$0.00</strong></div>
+      <button type="button" class="button primary" id="checkout" disabled>Checkout</button>
+      <button type="button" class="button" id="remove" hidden>Remove last item</button>
+    </aside>
+  </div>
+</main>
+
+<dialog id="account-dialog" aria-labelledby="account-title">
+  <div class="dialog-head"><h2 id="account-title">Your account</h2><button type="button" class="button" data-close>Close</button></div>
+  <form id="login">
+    <label class="field">Email<input name="email" type="email" autocomplete="off" autofocus required></label>
+    <label class="field">Password<input name="password" type="password" autocomplete="off" required></label>
+    <p id="login-error" hidden>That email or password is incorrect.</p>
+    <button class="button primary" type="submit">Sign in</button>
+    <details><summary>Demo credentials</summary><p>judge@example.com / demo-shop</p></details>
+  </form>
+  <p id="account-details" hidden></p>
+  <button type="button" class="button" id="sign-out" hidden>Sign out</button>
+  <p class="demo-caption dialog-caption" hidden></p>
+</dialog>
+<dialog id="checkout-dialog" aria-labelledby="checkout-title">
+  <div class="dialog-head"><h2 id="checkout-title">Checkout</h2><button type="button" class="button" data-close>Close</button></div>
+  <form id="checkout-form">
+    <label class="field">Delivery name<input name="delivery" autocomplete="off" autofocus required></label>
+    <div id="order-review"><span>Order total</span><strong class="price" id="order-total"></strong></div>
+    <button type="submit" class="button primary">Place demo order</button>
+  </form>
+  <div id="order-receipt" hidden>
+    <p id="confirmation"></p>
+    <p id="receipt-total"></p>
+  </div>
+  <p class="demo-caption dialog-caption" hidden></p>
+</dialog>
+<p id="demo-step" class="demo-caption" hidden></p><div id="pointer" aria-hidden="true" hidden></div>
+<script>
+  const byId = id => document.getElementById(id);
+  const shopCards = [...byId('products').children];
+  const search = byId('search');
+  const products = Object.fromEntries(shopCards.map(card => [card.dataset.product, {
+    name: card.querySelector('h2').textContent,
+    image: card.querySelector('img').getAttribute('src'),
+    price: Number(card.dataset.price),
+    searchText: card.querySelector('.details').textContent.toLowerCase(),
+  }]));
+  const cart = JSON.parse(sessionStorage.getItem('field-bag') || '[]').filter(id => Object.hasOwn(products, id));
+  const accountDialog = byId('account-dialog');
+  const checkoutDialog = byId('checkout-dialog');
+  const login = byId('login');
+  const checkoutForm = byId('checkout-form');
+  const pointer = byId('pointer');
+  const money = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'});
+  let signedIn = sessionStorage.getItem('field-account');
+  let category = 'all';
+  let subtotal = 0;
+
+  function showCart() {
+    const quantities = new Map();
+    subtotal = 0;
+    for (const id of cart) {
+      quantities.set(id, (quantities.get(id) || 0) + 1);
+      subtotal += products[id].price;
+    }
+    sessionStorage.setItem('field-bag', JSON.stringify(cart));
+    document.querySelector('[data-testid=cart-count]').textContent = cart.length + (cart.length === 1 ? ' item' : ' items');
+    document.querySelector('[data-testid=cart-total]').textContent = money.format(subtotal);
+    byId('bag-count').textContent = '(' + cart.length + ')';
+    byId('empty-bag').hidden = Boolean(cart.length);
+    byId('checkout').disabled = !cart.length;
+    byId('remove').hidden = !cart.length;
+    byId('bag-items').replaceChildren(...Array.from(quantities, ([id, quantity]) => {
+      const product = products[id];
+      const line = document.createElement('li');
+      line.className = 'line';
+      const image = document.createElement('img');
+      image.src = product.image;
+      image.alt = '';
+      const detail = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = product.name;
+      const count = document.createElement('small');
+      count.textContent = 'Qty ' + quantity;
+      detail.append(name, count);
+      const price = document.createElement('strong');
+      price.textContent = money.format(quantity * product.price);
+      line.append(image, detail, price);
+      return line;
+    }));
+  }
+
+  function showAccount() {
+    byId('signed-in').textContent = signedIn ? 'Signed in as ' + signedIn : '';
+    byId('account-details').textContent = signedIn || '';
+    byId('account-details').hidden = !signedIn;
+    byId('sign-out').hidden = !signedIn;
+    login.hidden = Boolean(signedIn);
+  }
+
+  function filterProducts() {
+    const query = search.value.trim().toLowerCase();
+    for (const card of shopCards) {
+      card.hidden = (category !== 'all' && card.dataset.category !== category)
+        || !products[card.dataset.product].searchText.includes(query);
+    }
+    byId('no-products').hidden = shopCards.some(card => !card.hidden);
+  }
+
+  function leaveDialog(dialog) {
+    dialog.close();
+    document.body.append(pointer);
+    pointer.hidden = true;
+  }
+
+  for (const dialog of [accountDialog, checkoutDialog]) {
+    dialog.querySelector('[data-close]').addEventListener('click', () => leaveDialog(dialog));
+  }
+  window.demoStep = (label) => {
+    const step = Number(sessionStorage.getItem('field-demo-step') || 0) + 1;
+    sessionStorage.setItem('field-demo-step', step);
+    for (const caption of document.querySelectorAll('.demo-caption')) {
+      const badge = document.createElement('span');
+      badge.className = 'step-number';
+      badge.textContent = 'STEP ' + String(step).padStart(2, '0');
+      const text = document.createElement('span');
+      text.textContent = label;
+      caption.replaceChildren(badge, text);
+      caption.hidden = false;
+    }
+  };
+  document.addEventListener('pointermove', (event) => {
+    if (byId('demo-step').hidden) return;
+    const host = document.querySelector('dialog[open]') || document.body;
+    if (pointer.parentElement !== host) host.append(pointer);
+    pointer.hidden = false;
+    pointer.style.left = event.clientX + 'px';
+    pointer.style.top = event.clientY + 'px';
+  });
+  document.addEventListener('pointerdown', () => {
+    pointer.classList.add('pressed');
+    setTimeout(() => pointer.classList.remove('pressed'), 440);
+  });
+  byId('account').addEventListener('click', () => accountDialog.showModal());
+  login.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const details = new FormData(login);
+    const email = details.get('email').trim().toLowerCase();
+    if (email !== 'judge@example.com' || details.get('password') !== 'demo-shop') {
+      byId('login-error').hidden = false;
+      return;
+    }
+    byId('login-error').hidden = true;
+    signedIn = email;
+    sessionStorage.setItem('field-account', signedIn);
+    login.reset();
+    showAccount();
+    leaveDialog(accountDialog);
+  });
+  byId('sign-out').addEventListener('click', () => {
+    signedIn = null;
+    sessionStorage.removeItem('field-account');
+    showAccount();
+    leaveDialog(accountDialog);
+  });
+  search.addEventListener('input', filterProducts);
+  for (const button of document.querySelectorAll('.tab')) {
+    button.addEventListener('click', () => {
+      category = button.dataset.category;
+      for (const tab of document.querySelectorAll('.tab')) tab.setAttribute('aria-pressed', String(tab === button));
+      filterProducts();
+    });
+  }
+  for (const card of shopCards) {
+    card.querySelector('button').addEventListener('click', () => { cart.push(card.dataset.product); showCart(); });
+  }
+  byId('remove').addEventListener('click', () => { cart.pop(); showCart(); });
+  byId('checkout').addEventListener('click', () => {
+    checkoutForm.reset();
+    checkoutForm.hidden = false;
+    byId('checkout-title').textContent = 'Checkout';
+    byId('order-receipt').hidden = true;
+    byId('order-total').textContent = money.format(subtotal);
+    checkoutDialog.showModal();
+  });
+  checkoutForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = new FormData(checkoutForm).get('delivery').trim();
+    if (!name) { checkoutForm.elements.delivery.focus(); return; }
+    byId('checkout-title').textContent = 'Order placed';
+    byId('confirmation').textContent = 'Order confirmed for ' + name + '.';
+    byId('receipt-total').textContent = 'Demo order total · ' + money.format(subtotal);
+    checkoutForm.hidden = true;
+    byId('order-receipt').hidden = false;
+    cart.length = 0;
+    showCart();
+  });
+  showAccount();
+  showCart();
+</script>
+</body>
+</html>

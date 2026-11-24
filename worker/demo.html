@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser check demo</title>
+<style>
+  body { margin: 0; display: grid; place-items: center; min-height: 100vh; background: #e9f1fc; color: #182938; font: 18px system-ui, sans-serif; }
+  main { padding: 36px 46px; border: 1px solid #c3d1e2; border-radius: 16px; background: white; }
+  h1 { margin: 0 0 8px; }
+  p { margin: 0; }
+</style>
+<main>
+  <h1 hidden>Browser check demo</h1>
+  <p>This page is bundled with the Playwright worker.</p>
+</main>
+<script>
+  // A short loading state makes overlapping demo runs easy to observe.
+  setTimeout(() => { document.querySelector('h1').hidden = false; }, 7000);
+</script>
+</html>

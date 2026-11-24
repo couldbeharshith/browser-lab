@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: browser-demo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: browser-demo-api
+  namespace: browser-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: browser-demo-api
+  namespace: browser-demo
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: browser-demo-api
+  namespace: browser-demo
+subjects:
+  - kind: ServiceAccount
+    name: browser-demo-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: browser-demo-api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: artifacts
+  namespace: browser-demo
+spec:
+  storageClassName: local-path
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: browser-demo-api
+  namespace: browser-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: browser-demo-api
+  template:
+    metadata:
+      labels:
+        app: browser-demo-api
+    spec:
+      serviceAccountName: browser-demo-api
+      containers:
+        - name: api
+          image: browser-demo-api:1
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WORKER_IMAGE
+              value: browser-demo-worker:1
+          ports:
+            - containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: artifacts
+              mountPath: /artifacts
+      volumes:
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: artifacts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: browser-demo-api
+  namespace: browser-demo
+spec:
+  selector:
+    app: browser-demo-api
+  ports:
+    - port: 8000
+      targetPort: 8000

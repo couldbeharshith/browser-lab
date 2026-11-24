@@ -1,0 +1,11 @@
+services:
+  api:
+    image: browser-demo-api:1
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+  worker:
+    image: browser-demo-worker:1
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
